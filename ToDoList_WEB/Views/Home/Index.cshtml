@@ -285,7 +285,7 @@
 
 						});
 
-						$('.todo-list').on('click', ".delete-task", function () {
+						$(document).on('click', '.delete-task', function () {
 							console.log("Delete button clicked.");
 							const $li = $(this).closest("li");
 							const Id = $(this).closest("li").data("id");

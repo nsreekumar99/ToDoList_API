@@ -77,32 +77,35 @@ namespace ToDoList_WEB.Controllers
 			{
 				dto.CreatedDate = DateOnly.FromDateTime(DateTime.Now);
 				var response = await _ToDoListService.CreateAsync<APIResponse>(dto);
-				if(response !=null && response.isSuccess) 
+				if(response !=null) 
 				{
-					var createdTask = JsonConvert.DeserializeObject<ToDoListMDTO>(Convert.ToString(response.Result));
 
-					return Json(new
+					if (response.isSuccess)
 					{
-						success = true,
-						Message = "Data updated successfully!",
-						data = new
+						var createdTask = JsonConvert.DeserializeObject<ToDoListMDTO>(Convert.ToString(response.Result));
+
+						return Json(new
 						{
-							id = createdTask.Id,
-							name = createdTask.Name,
-							taskDate = createdTask.TaskDate.ToString("yyyy-MM-dd")
-						}
-					});
-				}
+							success = true,
+							Message = "Data updated successfully!",
+							data = new
+							{
+								id = createdTask.Id,
+								name = createdTask.Name,
+								taskDate = createdTask.TaskDate.ToString("yyyy-MM-dd")
+							}
+						});
+					}
 
-				if(response.ErrorMessages!= null && response.ErrorMessages.Any())
-				{
-					return Json(new
+					if (response.ErrorMessages != null && response.ErrorMessages.Any())
 					{
-						success = false,
-						errors = response.ErrorMessages
-					});
+						return Json(new
+						{
+							success = false,
+							errors = response.ErrorMessages
+						});
+					}
 				}
-
 				return Json(new { success = false, Message = "Coundn't update data!" });
 			}
 			return Json(new { success = false, message = "Failed to create the task. Please try again." });
