@@ -1,0 +1,405 @@
+﻿@model IEnumerable<ToDoList_WEB.Models.DTO.ToDoListMDTO>
+@{
+	ViewData["Title"] = "Home Page";
+}
+@Html.AntiForgeryToken()
+<div class="container-fluid" style="background: linear-gradient(135deg, #153677, #4e085f)">
+	<div class="d-flex justify-content-center align-items-center" style="height:100vh;">
+		<div class="card todo-card">
+			<div class="card-header-custom">
+				<h2 class="text-primary">To-Do-List</h2>
+			</div>
+			<div id="error-container" class="mb-3"></div>
+			<div class="card-content">
+				<div class="row">
+					<div class="col-12 position-relative input-wrapper">
+						<input type="text" class="form-control rounded-input w-100" placeholder="Enter your task here" />
+
+						@* transform: translateY(-50%); *@
+						<div class="position-absolute date-icon-wrapper clickable-area">
+							<input type="text" class="form-control date-picker" style="width: 10px; opacity: 0; position: absolute; right: 0;" hidden />
+							<span class="date-icon" style="cursor: pointer;">
+								<i class="bi bi-calendar" style="font-size:20px;"></i>
+							</span>
+						</div>
+
+						<button class="rounded-button p-3 w-25">Add</button>
+					</div>
+				</div>
+
+				@{
+					var today = DateTime.UtcNow.Date;
+				}
+
+				@{
+					var taskGroups = Model.GroupBy(item =>
+					{
+						var taskDate = item.TaskDate.ToDateTime(TimeOnly.MinValue);
+						var daysDifference = (taskDate - today).TotalDays;
+
+						// Assign a label based on the number of days until the task date.
+						if (daysDifference == 0)
+							return "Today"; // Task is due today.
+						else if (daysDifference == 1)
+							return "Tomorrow"; // Task is due tomorrow.
+						else if (daysDifference > 1 && daysDifference <= 7)
+							return "Next Week"; // Task is due within the next week.
+						else if (daysDifference > 1 && daysDifference <= 30)
+							return "Next Month"; // Task is due within the next month.
+						else
+							return "Future"; // Task is scheduled further than a month ahead.
+					});
+				}
+
+				<div class="task-container">
+					@foreach (var group in taskGroups)
+					{
+
+						@* Group tasks by label *@
+						<div class="label-group">
+
+							<div class="col-12 text-start mt-2">
+								<span class="task-label text-primary">@group.Key</span>
+							</div>
+							@foreach (var item in group)
+							{
+								<ul class="todo-list">
+									<li class="row align-items-center mt-2 todo-item" data-id="@item.Id">
+
+										<!-- Checkbox -->
+										<div class="col-auto">
+											<input type="checkbox" class="form-check-input" @(item.isChecked == true ? "checked" : "") />
+										</div>
+
+										<!-- Task Details -->
+										<div class="col">
+											<div class="user-text-container text-start">
+												<span class="user-text" style="@(item.isChecked == true ? "text-decoration: line-through;" : "")">@item.Name</span>
+												<span class="task-date">@item.TaskDate.ToString("dddd, dd/MM/yyyy")</span>
+											</div>
+										</div>
+
+										<!-- Delete Button -->
+										<div class="col-auto">
+											<span class="delete-task">
+												<i class="bi bi-x"></i>
+											</span>
+										</div>
+									</li>
+								</ul>
+							}
+						</div>
+					}
+				</div>
+
+				<style>
+					.delete-task {
+						cursor: pointer;
+						padding: 5px;
+					}
+
+						.delete-task:hover {
+							color: red;
+							background-color: rgba(255, 0, 0, 0.1);
+							border-radius: 50%;
+							transform: scale(20);
+						}
+
+					.user-text-container {
+						display: flex;
+						flex-direction: column;
+					}
+				</style>
+
+				<script>
+					// code for box checkmark function and text line-through
+					document.addEventListener("DOMContentLoaded", function () {
+						$(".todo-list").on("change", ".form-check-input", function () {
+							const $li = $(this).closest("li");
+							const id = $(this).closest("li").data("id"); // Retrieve the ID from data-id attribute
+							const isChecked = $(this).is(":checked");
+							const name = $li.find(".user-text").text().trim();
+
+							// Create the DTO object
+							const dto = {
+								Id: id,
+								isChecked: isChecked,
+								Name: name
+							};
+
+							// Send the data as JSON
+							$.ajax({
+								url: '/Home/PostTestData',  // Your action route (ensure this matches the route for the PostTestData action)
+								type: 'POST',
+								contentType: 'application/json',
+								data: JSON.stringify(dto),  // Send the data as JSON
+								success: function (response) {
+									// Log the response to the console
+									console.log(response);
+
+									if (response && response.success) {
+										// Update the checkbox style and text decoration on the client side
+										const $li = $(`[data-id="${dto.Id}"]`);
+										const $checkbox = $li.find(".form-check-input");
+										const $text = $li.find(".user-text");
+
+										if (dto.isChecked) {
+											$text.css("text-decoration", "line-through");
+										} else {
+											$text.css("text-decoration", "none");
+										}
+									} else {
+										console.error("Failed to update data on server.");
+									}
+								},
+								error: function (error) {
+									console.error("Error: ", error);
+								}
+							});
+						});
+
+						$('.date-picker').datepicker({
+							dateFormat: "yy-mm-dd",
+							showOn: "focus",
+							buttonText: "Select Date",
+							changeMonth: true,
+							changeYear: true,
+							yearRange: "c-0:c+10"
+						});
+
+						$('.date-icon').on('click', function () {
+							console.log('Date picker is focused');
+							$(".date-picker").focus();
+						});
+
+						$('.rounded-button').on('click', function () {
+							console.log('Add button clicked');
+
+							const content = $('.input-wrapper input[type = "text"]').val().trim();
+							const date = $('.date-picker').val().trim();
+
+
+							// if (!content || !date) {
+							// 	alert("Please enter content & select a date.");
+							// 	return;
+							// }
+
+							const data = {
+								Name: content,
+								TaskDate: date
+							};
+
+							$.ajax({
+								url: '/Home/CreateNewTask',
+								type: 'POST',
+								contentType: 'application/json',
+								data: JSON.stringify(data),
+								success: function (response) {
+									if (response.success) {
+										console.log("Data Sent Successfully", response);
+
+										const taskDate = new Date(response.data.taskDate);
+
+										const formattedDate = taskDate.toLocaleDateString('en-GB', {
+											weekday: 'long',
+											day: '2-digit',
+											month: '2-digit',
+											year: 'numeric'
+										});
+
+										console.log("Formatted Task Date:", formattedDate);
+
+										console.log(response.data.TaskDate);
+										const today = new Date();
+
+										const daysDifference = Math.floor((taskDate - today) / (1000 * 60 * 60 * 24));
+
+										let label = "Future";
+
+										if (daysDifference === 0) {
+											label = "Today";
+										} else if (daysDifference === 1) {
+											label = "Tomorrow";
+										} else if (daysDifference > 1 && daysDifference <= 7) {
+											label = "Next Week";
+										} else if (daysDifference > 7 && daysDifference <= 30) {
+											label = "Next Month";
+										}
+
+										// Locate or create label group
+
+										let labelGroup = $(`.task-label:contains(${label})`).closest('.label-group');
+
+										if (!labelGroup.length) {
+											labelGroup = $(`
+												<div class="label-group">
+													<div class="col-12 text-start">
+														<span class="task-label text-primary">${label}</span>
+													</div>
+													<ul class="todo-list"></ul>
+												</div>
+											`);
+
+											$('.task-container').append(labelGroup);
+										}
+
+										const newTask = `
+											<li class="row align-items-center mt-3 todo-item" data-id="${response.data.id}">
+												<div class="col-auto">
+													<input type="checkbox" class="form-check-input" />
+												</div>
+												<div class="col">
+													<div class="user-text-container text-start">
+														<span class="user-text">${response.data.name}</span>
+														<span class="task-date">${formattedDate}</span>
+													</div>
+												</div>
+												<div class="col-auto">
+													<span class="delete-task">
+														<i class="bi bi-x"></i>
+													</span>
+												</div>
+											</li>
+										`;
+
+										labelGroup.find('.todo-list').append(newTask);
+
+										// Clear the input fields
+										$('.input-wrapper input[type="text"]').val('');
+										$('.date-picker').val('');
+
+									}
+									else {
+										const errorList = response.errors || [response.message];
+										const errorHtml = errorList.map(err => `<p class="text-danger">${err}</p>`).join("");
+
+										// Display errors in a container on the view
+										$("#error-container").html(errorHtml);
+										console.log("Un-successfull", response);
+									}
+								},
+								error: function (error) {
+									console.error("Error sending data", error);
+								}
+							});
+
+						});
+
+						$('.todo-list').on('click', ".delete-task", function () {
+							console.log("Delete button clicked.");
+							const $li = $(this).closest("li");
+							const Id = $(this).closest("li").data("id");
+							console.log("Id =", Id);
+
+							$.ajax({
+								url: '/Home/DeleteTask',
+								type: 'POST',
+								data: { id: Id },
+								success: function (response) {
+									if (response.success) {
+										console.log("Task Deleted Successfully", response);
+
+										$li.fadeOut(300, function () {
+											$(this).remove();
+										});
+									}
+									else {
+										console.log("Could not Delete Task", response);
+									}
+								},
+								error: function (error) {
+									console.error("Error sending data", error);
+								}
+							});
+						});
+
+					});
+				</script>
+
+
+				<style>
+					.todo-list {
+						list-style: none; /* Removes bullets */
+						padding: 0; /* Removes default padding */
+						margin: 0; /* Removes default margin */
+					}
+				</style>
+
+			</div>
+		</div>
+		<style>
+			.todo-card {
+				width: 40%;
+				min-height: 60vh;
+				padding: 20px;
+				background-color: #FFFFFF;
+				box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+				border-radius: 8px;
+			}
+
+			.card-header-custom {
+				padding: 15px 0;
+				color: #FFFFFF;
+				border-top-left-radius: 8px;
+				border-top-right-radius: 8px;
+			}
+
+			.input-wrapper {
+				position: relative;
+				width: 100%;
+			}
+
+			.rounded-input {
+				border-radius: 50px;
+				border: none;
+				outline: none;
+				box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+				width: 100%;
+				padding-right: 40%;
+				padding-top: 15px;
+				padding-bottom: 15px;
+				background-color: whitesmoke;
+			}
+
+			.rounded-button {
+				position: absolute;
+				right: 10px;
+				top: 50%;
+				transform: translateY(-50%);
+				background-color: #FF7F50;
+				color: #FFFFFF;
+				border: none;
+				outline: none;
+				border-radius: 50px;
+				box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+				cursor: pointer;
+				padding: 10px 20px;
+			}
+
+			.date-icon-wrapper{
+				top:50%;
+				position:absolute;
+				right:30%;
+				transform: translateY(-50%);
+			}
+
+			/* Adjust card width for small screens */
+			@@media (max-width: 767px) {
+				.todo-card {
+					width: 90%; /* Make card more compact for small screens */
+					min-height: 60vh; /* Adjust height as needed */
+				}
+
+				.date-icon-wrapper{
+					right:35%;
+				}
+				
+			}
+
+		</style>
+	</div>
+</div>
+
+@* <script src="~/js/index.js"></script> *@
+
+
