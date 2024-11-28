@@ -92,7 +92,8 @@ namespace ToDoList_WEB.Controllers
 							{
 								id = createdTask.Id,
 								name = createdTask.Name,
-								taskDate = createdTask.TaskDate.ToString("yyyy-MM-dd")
+								taskDate = createdTask.TaskDate.ToString("yyyy-MM-dd"),
+								today = DateTime.UtcNow.Date
 							}
 						});
 					}
