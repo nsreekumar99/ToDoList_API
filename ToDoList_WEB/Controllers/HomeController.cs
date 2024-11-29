@@ -83,7 +83,6 @@ namespace ToDoList_WEB.Controllers
 					if (response.isSuccess)
 					{
 						var createdTask = JsonConvert.DeserializeObject<ToDoListMDTO>(Convert.ToString(response.Result));
-
 						return Json(new
 						{
 							success = true,
@@ -93,7 +92,8 @@ namespace ToDoList_WEB.Controllers
 								id = createdTask.Id,
 								name = createdTask.Name,
 								taskDate = createdTask.TaskDate.ToString("yyyy-MM-dd"),
-								today = DateTime.UtcNow.Date
+								today = DateTime.UtcNow.Date,
+								message = "Task Created Successfully"
 							}
 						});
 					}

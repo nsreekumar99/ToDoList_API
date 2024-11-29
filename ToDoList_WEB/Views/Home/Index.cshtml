@@ -210,6 +210,8 @@
 										console.log("Formatted Task Date:", formattedDate);
 
 										console.log(response.data.TaskDate);
+										toastr.success(response.data.message);
+
 										const today = new Date(response.data.today);
 
 										const daysDifference = Math.floor((taskDate - today) / (1000 * 60 * 60 * 24));
@@ -274,11 +276,13 @@
 										const errorHtml = errorList.map(err => `<p class="text-danger">${err}</p>`).join("");
 
 										// Display errors in a container on the view
+										toastr.error("An Unexpected Error Occured.");
 										$("#error-container").html(errorHtml);
 										console.log("Un-successfull", response);
 									}
 								},
 								error: function (error) {
+									toastr.error("Failed to create Task. Please try again.");
 									console.error("Error sending data", error);
 								}
 							});
